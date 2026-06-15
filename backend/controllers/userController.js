@@ -45,12 +45,8 @@ async function signup(req, res) {
 
     const result = await usersCollection.insertOne(newUser);
 
-    const token = jwt.sign(
-      { id: result.insertId },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-    res.json({ token, userId: result.insertId });
+    const token = jwt.sign({ id: result.insertedId }, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
+    res.json({ token, userId: result.insertedId });
   } catch (err) {
     console.error("Error during signup : ", err.message);
     res.status(500).send("Server error");
@@ -144,15 +140,12 @@ async function updateUserProfile(req, res) {
       { $set: updateFields },
       { returnDocument: "after" }
     );
-    if (!result.value) {
-      return res.status(404).json({ message: "User not found!" });
-    }
-
-    res.send(result.value);
-  } catch (err) {
+    if (!result) return res.status(404).json({ message: "User not found!" });
+    res.send(result);
+    } catch (err) {
     console.error("Error during updating : ", err.message);
     res.status(500).send("Server error!");
-  }
+    }
 }
 
 async function deleteUserProfile(req, res) {
@@ -166,13 +159,8 @@ async function deleteUserProfile(req, res) {
     const result = await usersCollection.deleteOne({
       _id: new ObjectId(currentID),
     });
-
-    if (result.deleteCount == 0) {
-      return res.status(404).json({ message: "User not found!" });
-    }
-
-    res.json({ message: "User Profile Deleted!" });
-  } catch (err) {
+    if (result.deletedCount == 0)return res.status(404).json({ message: "User not found!" });
+  }catch (err) {
     console.error("Error during updating : ", err.message);
     res.status(500).send("Server error!");
   }
